@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-consumer
+  namespace: default
+  labels:
+    app: todo-consumer
+spec:
+  selector:
+    matchLabels:
+      app: todo-consumer
+  template:
+    metadata:
+      labels:
+        app: todo-consumer
+    spec:
+      containers:
+      - name: todo-consumer
+        image: ggplayground.azurecr.io/todo-consumer:dev-04
+        imagePullPolicy: Always
+---
+apiVersion: keda.k8s.io/v1alpha1
+kind: ScaledObject
+metadata:
+  name: todo-consumer
+  namespace: default
+  labels:
+    deploymentName: todo-consumer
+spec:
+  scaleTargetRef:
+    deploymentName: todo-consumer
+  pollingInterval: 5
+  cooldownPeriod: 30
+  maxReplicaCount: 10
+  triggers:
+  - type: rabbitmq
+    metadata:
+      queueName: todo.queue
+      host: 'amqp://user:123456@my-rabbit-rabbitmq.default.svc.cluster.local:5672'
+      queueLength  : '5'
+---
